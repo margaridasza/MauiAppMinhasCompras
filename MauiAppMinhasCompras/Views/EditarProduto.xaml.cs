@@ -14,10 +14,11 @@ public partial class EditarProduto : ContentPage
         try
         {
             Produto produto_anexado = BindingContext as Produto;
+            // Recupera o produto que foi selecionado
 
             Produto p = new Produto
             {
-                Id = produto_anexado.Id,
+                Id = produto_anexado.Id, // Mantém o mesmo ID
                 Descricao = txt_descricao.Text,
                 Quantidade = Convert.ToDouble(txt_quantidade.Text),
                 Preco = Convert.ToDouble(txt_preco.Text)

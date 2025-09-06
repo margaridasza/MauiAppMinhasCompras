@@ -1,9 +1,9 @@
-﻿using System;
+﻿﻿using SQLite;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-﻿using SQLite;
 
 namespace MauiAppMinhasCompras.Models
 {
@@ -11,11 +11,11 @@ namespace MauiAppMinhasCompras.Models
     {
         string _descricao;
 
-        [PrimaryKey, AutoIncrement]
+        [PrimaryKey, AutoIncrement] // Define que 'Id' é a chave primária no banco e será incrementada automaticamente
         public int Id { get; set; }
-        public string Descricao
+        public string Descricao // Propriedade do produto (valida se for nula)
         {
-            get => _descricao;
+            get => _descricao; // Retorna o valor da descrição
             set
             {
                 if (value == null)
@@ -28,6 +28,6 @@ namespace MauiAppMinhasCompras.Models
         }
         public double Quantidade { get; set; }
         public double Preco { get; set; }
-        public double Total { get => Quantidade * Preco; }
+        public double Total { get => Quantidade * Preco; } // Calcula total automaticamente
     }
 }
