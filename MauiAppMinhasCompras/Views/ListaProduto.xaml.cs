@@ -69,6 +69,22 @@ public partial class ListaProduto : ContentPage
 
     private void ToolbarItem_Clicked_1(object sender, EventArgs e)
     {
+
+        // Pega a categoria selecionada no Picker
+        string categoriaSelecionada = pickerCategoria.SelectedItem?.ToString();
+
+        // Filtra produtos pela categoria selecionada
+        List<Produto> produtosFiltrados;
+
+        if (string.IsNullOrWhiteSpace(categoriaSelecionada) || categoriaSelecionada == "Todos")
+        {
+            produtosFiltrados = lista.ToList(); // todos os produtos
+        }
+        else
+        {
+            produtosFiltrados = lista.Where(p => p.Categoria == categoriaSelecionada).ToList();
+        }
+
         double soma = lista.Sum(i => i.Total);
 
         string msg = $"O total é {soma:C}";
@@ -136,4 +152,39 @@ public partial class ListaProduto : ContentPage
             lst_produtos.IsRefreshing = false;
         }
     }
+
+    private async void ToolbarItem_Clicked_Relatorio(object sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new RelatorioCategoria());
+    }
+
+    private void PickerCategoria_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            string categoriaSelecionada = pickerCategoria.SelectedItem?.ToString();
+
+            List<Produto> produtosFiltrados;
+
+            if (categoriaSelecionada == "Todos" || string.IsNullOrWhiteSpace(categoriaSelecionada))
+            {
+                produtosFiltrados = lista.ToList();
+            }
+            else
+            {
+                produtosFiltrados = lista.Where(p => p.Categoria == categoriaSelecionada).ToList();
+            }
+
+            lst_produtos.ItemsSource = produtosFiltrados;
+
+            double soma = produtosFiltrados.Sum(p => p.Total);
+            DisplayAlert("Total da Categoria", $"O total de {categoriaSelecionada} é {soma:C}", "OK");
+        }
+        catch (Exception ex)
+        {
+            DisplayAlert("Ops", ex.Message, "OK");
+        }
+    }
+
+
 }

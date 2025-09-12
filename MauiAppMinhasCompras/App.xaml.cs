@@ -3,7 +3,7 @@ using System.Globalization;
 
 namespace MauiAppMinhasCompras
 {
-    public partial class App : Application
+    public partial class App : Application //Inicialização da aplicação e instância do DB
     {
         static SQLiteDatabaseHelper _db;
 
