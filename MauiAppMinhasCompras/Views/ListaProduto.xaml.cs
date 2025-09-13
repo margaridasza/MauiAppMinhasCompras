@@ -5,13 +5,13 @@ namespace MauiAppMinhasCompras.Views;
 
 public partial class ListaProduto : ContentPage
 {
-    ObservableCollection<Produto> lista = new ObservableCollection<Produto>();
+    ObservableCollection<Produto> lista = new();            // base
+    ObservableCollection<Produto> listaFiltrada = new();    // ligada à UI
 
     public ListaProduto()
     {
         InitializeComponent();
-
-        lst_produtos.ItemsSource = lista;
+        lst_produtos.ItemsSource = listaFiltrada; // sempre aponta para a filtrada
     }
 
     protected async override void OnAppearing()
@@ -20,9 +20,10 @@ public partial class ListaProduto : ContentPage
         {
             lista.Clear();
 
-            List<Produto> tmp = await App.Db.GetAll();
-
+            var tmp = await App.Db.GetAll();
             tmp.ForEach(i => lista.Add(i));
+
+            ReaplicarFiltros();
         }
         catch (Exception ex)
         {
@@ -30,12 +31,28 @@ public partial class ListaProduto : ContentPage
         }
     }
 
+    private void ReaplicarFiltros()
+    {
+        var termo = txt_search?.Text?.Trim() ?? "";
+        var categoria = pickerCategoria?.SelectedItem?.ToString() ?? "Todos";
+
+        IEnumerable<Produto> query = lista;
+
+        if (categoria != "Todos" && !string.IsNullOrWhiteSpace(categoria))
+            query = query.Where(p => string.Equals(p.Categoria, categoria, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrWhiteSpace(termo))
+            query = query.Where(p => p.Descricao?.Contains(termo, StringComparison.OrdinalIgnoreCase) == true);
+
+        listaFiltrada.Clear();
+        foreach (var p in query) listaFiltrada.Add(p);
+    }
+
     private void ToolbarItem_Clicked(object sender, EventArgs e)
     {
         try
         {
             Navigation.PushAsync(new Views.NovoProduto());
-
         }
         catch (Exception ex)
         {
@@ -47,15 +64,14 @@ public partial class ListaProduto : ContentPage
     {
         try
         {
-            string q = e.NewTextValue;
+            lst_produtos.IsRefreshing = true;
 
-            lst_produtos.IsRefreshing = true; // loading explicito
-
+            // opção B: busca no banco
             lista.Clear();
-
-            List<Produto> tmp = await App.Db.Search(q);
-
+            var tmp = await App.Db.Search(e.NewTextValue);
             tmp.ForEach(i => lista.Add(i));
+
+            ReaplicarFiltros();
         }
         catch (Exception ex)
         {
@@ -69,44 +85,24 @@ public partial class ListaProduto : ContentPage
 
     private void ToolbarItem_Clicked_1(object sender, EventArgs e)
     {
-
-        // Pega a categoria selecionada no Picker
-        string categoriaSelecionada = pickerCategoria.SelectedItem?.ToString();
-
-        // Filtra produtos pela categoria selecionada
-        List<Produto> produtosFiltrados;
-
-        if (string.IsNullOrWhiteSpace(categoriaSelecionada) || categoriaSelecionada == "Todos")
-        {
-            produtosFiltrados = lista.ToList(); // todos os produtos
-        }
-        else
-        {
-            produtosFiltrados = lista.Where(p => p.Categoria == categoriaSelecionada).ToList();
-        }
-
-        double soma = lista.Sum(i => i.Total);
-
-        string msg = $"O total é {soma:C}";
-
-        DisplayAlert("Total dos Produtos", msg, "OK");
+        var soma = listaFiltrada.Sum(i => i.Total); // soma apenas os filtrados
+        DisplayAlert("Total dos Produtos", $"O total é {soma:C}", "OK");
     }
 
     private async void MenuItem_Clicked(object sender, EventArgs e)
     {
         try
         {
-            MenuItem selecinado = sender as MenuItem;
-
-            Produto p = selecinado.BindingContext as Produto;
-
-            bool confirm = await DisplayAlert(
-                "Tem Certeza?", $"Remover {p.Descricao}?", "Sim", "Não");
-
-            if (confirm)
+            if (sender is MenuItem selecionado && selecionado.BindingContext is Produto p)
             {
-                await App.Db.Delete(p.Id);
-                lista.Remove(p);
+                bool confirm = await DisplayAlert("Tem Certeza?", $"Remover {p.Descricao}?", "Sim", "Não");
+
+                if (confirm)
+                {
+                    await App.Db.Delete(p.Id);
+                    lista.Remove(p);
+                    listaFiltrada.Remove(p);
+                }
             }
         }
         catch (Exception ex)
@@ -119,12 +115,13 @@ public partial class ListaProduto : ContentPage
     {
         try
         {
-            Produto p = e.SelectedItem as Produto;
-
-            Navigation.PushAsync(new Views.EditarProduto
+            if (e.SelectedItem is Produto p)
             {
-                BindingContext = p,
-            });
+                Navigation.PushAsync(new Views.EditarProduto
+                {
+                    BindingContext = p,
+                });
+            }
         }
         catch (Exception ex)
         {
@@ -138,16 +135,16 @@ public partial class ListaProduto : ContentPage
         {
             lista.Clear();
 
-            List<Produto> tmp = await App.Db.GetAll();
-
+            var tmp = await App.Db.GetAll();
             tmp.ForEach(i => lista.Add(i));
+
+            ReaplicarFiltros();
         }
         catch (Exception ex)
         {
             await DisplayAlert("Ops", ex.Message, "OK");
-
         }
-        finally //código executado de toda maneira: carrega o que está na lista e faz a bolotinha que está carregando sumir
+        finally
         {
             lst_produtos.IsRefreshing = false;
         }
@@ -162,29 +159,16 @@ public partial class ListaProduto : ContentPage
     {
         try
         {
-            string categoriaSelecionada = pickerCategoria.SelectedItem?.ToString();
+            ReaplicarFiltros();
 
-            List<Produto> produtosFiltrados;
+            var categoria = pickerCategoria.SelectedItem?.ToString() ?? "Todos";
+            var soma = listaFiltrada.Sum(p => p.Total);
 
-            if (categoriaSelecionada == "Todos" || string.IsNullOrWhiteSpace(categoriaSelecionada))
-            {
-                produtosFiltrados = lista.ToList();
-            }
-            else
-            {
-                produtosFiltrados = lista.Where(p => p.Categoria == categoriaSelecionada).ToList();
-            }
-
-            lst_produtos.ItemsSource = produtosFiltrados;
-
-            double soma = produtosFiltrados.Sum(p => p.Total);
-            DisplayAlert("Total da Categoria", $"O total de {categoriaSelecionada} é {soma:C}", "OK");
+            DisplayAlert("Total da Categoria", $"O total de {categoria} é {soma:C}", "OK");
         }
         catch (Exception ex)
         {
             DisplayAlert("Ops", ex.Message, "OK");
         }
     }
-
-
 }
