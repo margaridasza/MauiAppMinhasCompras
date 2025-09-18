@@ -11,7 +11,8 @@ public partial class ListaProduto : ContentPage
     public ListaProduto()
     {
         InitializeComponent();
-        lst_produtos.ItemsSource = listaFiltrada; // sempre aponta para a filtrada
+        lst_produtos.ItemsSource = listaFiltrada; 
+        // sempre aponta para a filtrada
     }
 
     protected async override void OnAppearing()
